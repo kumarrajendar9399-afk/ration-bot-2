@@ -1,6 +1,6 @@
-# BOT 2 - Ration / Aadhar / Mobile - FIXED
-# Har line chhoti rakhi hai taaki GitHub me toot na jaye
-# Commands: /ration /aadhar /mobile /add
+# BOT 2 - Example jaisa - FIXED
+# /ration /aadhar /mobile teeno par SAME Example wala ViewRC button
+# Search wala page AB NAHI aayega
 
 import telebot
 from telebot import types
@@ -29,41 +29,39 @@ threading.Thread(target=_keep, daemon=True).start()
 TOKEN = os.environ.get('BOT_TOKEN', 'TOKEN')
 bot = telebot.TeleBot(TOKEN)
 
-SEARCH = 'https://nfsa.up.gov.in/Food/citizen/NFSASearch.aspx'
 BASE = 'https://nfsa.up.gov.in/Food/TrackingRationCard/'
 BASE = BASE + 'ViewRC.aspx?Details='
 
+# Example wala ration - iska RC_ID pata hai
+# isliye /ration 215541438805 par bilkul Example jaisa link aayega
 MAP = {
-    '123456789012': {
+    '215541438805': {
         'rc': '0915500813140750',
-        'aadhar': '123456789012',
-        'mobile': '9876543210',
+        'aadhar': '',
+        'mobile': '',
     },
 }
 
 def find_aadhar(a):
     for r, d in MAP.items():
-        if d.get('aadhar') == a:
+        if d.get('aadhar') == a and a != '':
             return r, d
     return None, None
 
 def find_mobile(mo):
     for r, d in MAP.items():
-        if d.get('mobile') == mo:
+        if d.get('mobile') == mo and mo != '':
             return r, d
     return None, None
 
-def make_url(ration_no, rc_id):
+def send_example(chat_id, label, value, ration_no, rc_id):
     raw = rc_id + '#00002103#' + ration_no
     det = base64.b64encode(raw.encode()).decode()
-    return BASE + det
-
-def send_slip(chat_id, label, value, ration_no, rc_id):
-    url = make_url(ration_no, rc_id)
-    msg = '✅ राशन कार्ड मिल गया!\n\n'
+    url = BASE + det
+    msg = '✅ राशन कार्ड विवरण मिल गया है!\n\n'
     msg = msg + '🆔 ' + label + ': ' + value + '\n'
     msg = msg + '🆔 कार्ड नंबर: ' + ration_no + '\n\n'
-    msg = msg + '👇 नीचे बटन दबाकर PDF देखो:'
+    msg = msg + '👇 नीचे दिए गए लिंक पर क्लिक करके पूरा हिंदी राशन कार्ड देखें या PDF सेव (Print) करें:'
     mk = types.InlineKeyboardMarkup()
     btn = types.InlineKeyboardButton(
         '📄 राशन कार्ड देखें / Print PDF',
@@ -72,25 +70,10 @@ def send_slip(chat_id, label, value, ration_no, rc_id):
     mk.add(btn)
     bot.send_message(chat_id, msg, reply_markup=mk)
 
-def send_search(chat_id, label, value, mode):
-    msg = '🆔 ' + label + ': ' + value + '\n\n'
-    msg = msg + '👇 बटन दबाओ, Chrome me kholo:\n'
-    msg = msg + '1. ' + mode + ' चुनो\n'
-    msg = msg + '2. यही नंबर डालो\n'
-    msg = msg + '3. Captcha डालकर Search दबाओ\n\n'
-    msg = msg + 'Usi ki asli slip khulegi.'
-    mk = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton(
-        '🔍 ' + mode + ' से स्लिप खोलो',
-        url=SEARCH,
-    )
-    mk.add(btn)
-    bot.send_message(chat_id, msg, reply_markup=mk)
-
 @bot.message_handler(commands=['start'])
 def start(m):
     t = 'नमस्ते! राशन स्लिप 3 तरीके से:\n\n'
-    t = t + '/ration 123456789012\n'
+    t = t + '/ration 215541438805\n'
     t = t + '/aadhar 123456789012\n'
     t = t + '/mobile 9876543210'
     bot.send_message(m.chat.id, t)
@@ -99,18 +82,22 @@ def start(m):
 def ration_cmd(m):
     p = m.text.split()
     if len(p) < 2:
-        bot.send_message(m.chat.id, '/ration 123456789012')
+        bot.send_message(m.chat.id, '/ration 215541438805')
         return
     no = p[1].strip()
     if not re.fullmatch(r'\d{12}', no):
         bot.send_message(m.chat.id, '❌ 12 अंक का नंबर भेजें')
         return
-    bot.send_message(m.chat.id, 'खोजा जा रहा है...')
+    bot.send_message(m.chat.id, 'राशन कार्ड खोजा जा रहा है...')
     d = MAP.get(no)
     if d:
-        send_slip(m.chat.id, 'कार्ड नंबर', no, no, d['rc'])
+        send_example(m.chat.id, 'कार्ड नंबर', no, no, d['rc'])
     else:
-        send_search(m.chat.id, 'कार्ड नंबर', no, 'Ration by Number')
+        t = '⚠️ ये नंबर अभी Save नहीं है।\n\n'
+        t = t + 'पहली बार ऐसे भेजें:\n'
+        t = t + '/add ' + no + ' <aadhar> <mobile> <RC_ID>\n\n'
+        t = t + 'RC_ID = 16 अंक वाला ID'
+        bot.send_message(m.chat.id, t)
 
 @bot.message_handler(commands=['aadhar'])
 def aadhar_cmd(m):
@@ -125,9 +112,12 @@ def aadhar_cmd(m):
     bot.send_message(m.chat.id, 'आधार से खोजा जा रहा है...')
     r, d = find_aadhar(no)
     if d:
-        send_slip(m.chat.id, 'आधार नंबर', no, r, d['rc'])
+        send_example(m.chat.id, 'आधार नंबर', no, r, d['rc'])
     else:
-        send_search(m.chat.id, 'आधार नंबर', no, 'Ration by Aadhar')
+        t = '⚠️ ये आधार अभी Save नहीं है।\n\n'
+        t = t + 'पहली बार ऐसे भेजें:\n'
+        t = t + '/add <ration> ' + no + ' <mobile> <RC_ID>'
+        bot.send_message(m.chat.id, t)
 
 @bot.message_handler(commands=['mobile'])
 def mobile_cmd(m):
@@ -142,9 +132,12 @@ def mobile_cmd(m):
     bot.send_message(m.chat.id, 'मोबाइल से खोजा जा रहा है...')
     r, d = find_mobile(no)
     if d:
-        send_slip(m.chat.id, 'मोबाइल नंबर', no, r, d['rc'])
+        send_example(m.chat.id, 'मोबाइल नंबर', no, r, d['rc'])
     else:
-        send_search(m.chat.id, 'मोबाइल नंबर', no, 'Ration by Mobile')
+        t = '⚠️ ये मोबाइल अभी Save नहीं है।\n\n'
+        t = t + 'पहली बार ऐसे भेजें:\n'
+        t = t + '/add <ration> <aadhar> ' + no + ' <RC_ID>'
+        bot.send_message(m.chat.id, t)
 
 @bot.message_handler(commands=['add'])
 def add_cmd(m):
@@ -178,7 +171,7 @@ def add_cmd(m):
 
 @bot.message_handler(func=lambda m: True)
 def anything(m):
-    t = '/ration 123456789012\n'
+    t = '/ration 215541438805\n'
     t = t + '/aadhar 123456789012\n'
     t = t + '/mobile 9876543210'
     bot.send_message(m.chat.id, t)
