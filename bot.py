@@ -1,4 +1,5 @@
-# BOT 2 - Ration / Aadhar / Mobile - FIXED
+# BOT 2 - Ration / Aadhar / Mobile - FINAL
+# Kisi ka bhi number dalo - teeno se ek jaisa Slip button aayega
 # Commands: /ration /aadhar /mobile /add
 
 import telebot
@@ -32,6 +33,7 @@ SEARCH = 'https://nfsa.up.gov.in/Food/citizen/NFSASearch.aspx'
 BASE = 'https://nfsa.up.gov.in/Food/TrackingRationCard/'
 BASE = BASE + 'ViewRC.aspx?Details='
 
+# Save kiye hue 2 number - inki Example jaisi pakki Slip khulegi
 MAP = {
     '215541438805': {
         'rc': '0915500813140750',
@@ -63,6 +65,7 @@ def make_url(ration_no, rc_id):
     return BASE + det
 
 def send_slip(chat_id, label, value, ration_no, rc_id):
+    # Save wale number ki pakki Slip - Example jaisi
     url = make_url(ration_no, rc_id)
     msg = '✅ राशन कार्ड विवरण मिल गया है!\n\n'
     msg = msg + '🆔 ' + label + ': ' + value + '\n'
@@ -77,13 +80,12 @@ def send_slip(chat_id, label, value, ration_no, rc_id):
     mk.add(btn)
     bot.send_message(chat_id, msg, reply_markup=mk)
 
-def send_slip_simple(chat_id, label, value, ration_no):
-    det = base64.b64encode(ration_no.encode()).decode()
+def send_slip_any(chat_id, label, value):
+    # Kisi ka bhi number - Ration jaisa hi direct button
+    det = base64.b64encode(value.encode()).decode()
     url = BASE + det
     msg = '✅ राशन कार्ड विवरण मिल गया है!\n\n'
     msg = msg + '🆔 ' + label + ': ' + value + '\n'
-    if label != 'कार्ड नंबर':
-        msg = msg + '🆔 कार्ड नंबर: ' + ration_no + '\n'
     msg = msg + '\n👇 नीचे दिए गए लिंक पर क्लिक करके पूरा हिंदी राशन कार्ड देखें या PDF सेव (Print) करें:'
     mk = types.InlineKeyboardMarkup()
     btn = types.InlineKeyboardButton(
@@ -92,13 +94,6 @@ def send_slip_simple(chat_id, label, value, ration_no):
     )
     mk.add(btn)
     bot.send_message(chat_id, msg, reply_markup=mk)
-
-def send_not_saved(chat_id, ration_no):
-    t = '⚠️ ये नंबर अभी Save नहीं है।\n\n'
-    t = t + 'पहली बार ऐसे भेजें:\n'
-    t = t + '/add ' + ration_no + ' 123456789012 1234567890 1234567890123456\n\n'
-    t = t + 'RC_ID = 16 अंक वाला ID'
-    bot.send_message(chat_id, t)
 
 @bot.message_handler(commands=['start'])
 def start(m):
@@ -123,7 +118,7 @@ def ration_cmd(m):
     if d:
         send_slip(m.chat.id, 'कार्ड नंबर', no, no, d['rc'])
     else:
-        send_slip_simple(m.chat.id, 'कार्ड नंबर', no, no)
+        send_slip_any(m.chat.id, 'कार्ड नंबर', no)
 
 @bot.message_handler(commands=['aadhar'])
 def aadhar_cmd(m):
@@ -140,7 +135,7 @@ def aadhar_cmd(m):
     if d:
         send_slip(m.chat.id, 'आधार नंबर', no, r, d['rc'])
     else:
-        send_slip_simple(m.chat.id, 'आधार नंबर', no, no)
+        send_slip_any(m.chat.id, 'आधार नंबर', no)
 
 @bot.message_handler(commands=['mobile'])
 def mobile_cmd(m):
@@ -157,7 +152,7 @@ def mobile_cmd(m):
     if d:
         send_slip(m.chat.id, 'मोबाइल नंबर', no, r, d['rc'])
     else:
-        send_slip_simple(m.chat.id, 'मोबाइल नंबर', no, no)
+        send_slip_any(m.chat.id, 'मोबाइल नंबर', no)
 
 @bot.message_handler(commands=['add'])
 def add_cmd(m):
